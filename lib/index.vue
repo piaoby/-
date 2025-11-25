@@ -424,6 +424,8 @@ export default {
 
             // 定义锚点映射关系表
             const anchorMap = {
+              "firewall->coreSwitch": { sourceAnchor: 11, targetAnchor: 8 }, // 防火墙到核心交换机
+              "coreSwitch->firewall": { sourceAnchor: 6, targetAnchor: 9 }, // 核心交换机到防火墙
               "esb->coreSwitch": { sourceAnchor: 8, targetAnchor: 3 },
               "coreSwitch->esb": { sourceAnchor: 5, targetAnchor: 6 },
               "coreSwitch->group": { sourceAnchor: 11, targetAnchor: 8 },
@@ -433,6 +435,7 @@ export default {
             };
 
             // 构造当前边的标识符用于查找映射
+            //
             const key = `${
               edge.source.includes("esb")
                 ? "esb"
@@ -442,6 +445,8 @@ export default {
                 ? "group"
                 : edge.source.includes("loadBalancer")
                 ? "loadBalancer"
+                : edge.source.includes("firewall")
+                ? "firewall"
                 : ""
             }->${
               edge.target.includes("esb")
@@ -452,6 +457,8 @@ export default {
                 ? "group"
                 : edge.target.includes("loadBalancer")
                 ? "loadBalancer"
+                : edge.target.includes("firewall")
+                ? "firewall"
                 : ""
             }`;
 
@@ -828,7 +835,41 @@ export default {
 
         this.edgeTooltipElement.style.display = "block";
       });
+      this.graph.on("edge:click", (evt) => {
+        const edge = evt.item;
+        const edgeModel = edge.getModel();
 
+        // 设置选中边的标签
+        this.selectedNodeLabel =
+          edgeModel.name || `${edgeModel.source} → ${edgeModel.target}`;
+
+        // 构造边的详情数据
+        const edgeDetailItems = [];
+        if (edgeModel.detailValue && edgeModel.detailValue.length > 0) {
+          edgeDetailItems.push({
+            name: "连接详情",
+            stats: edgeModel.detailValue.map((detail) => ({
+              name: detail.name,
+              value: detail.value,
+            })),
+          });
+        } else {
+          edgeDetailItems.push({
+            name: "连接详情",
+            stats: [
+              { name: "源节点", value: edgeModel.source },
+              { name: "目标节点", value: edgeModel.target },
+              {
+                name: "状态",
+                value: edgeModel.status === "normal" ? "正常" : "异常",
+              },
+            ],
+          });
+        }
+
+        this.detailItems = edgeDetailItems;
+        this.showDetailPanel = true;
+      });
       // 边鼠标移出事件
       this.graph.on("edge:mouseleave", (evt) => {
         if (this.edgeTooltipElement) {
@@ -941,52 +982,18 @@ export default {
         rawData.list.forEach((item) => {
           // 将listdetail数据转换为组件需要的详情项格式
           detailData[item.source] = item.listdetail.map((detail) => {
-            // 从detailValue数组中提取或使用默认值
+            // 从detailValue数组中提取数据
             let values = detail.detailValue || [];
 
-            // 确保有4个对象，如果不足则补充
-            if (values.length < 4) {
-              // 保存原有数据
-              const originalValues = [...values];
-              // 扩展到4个对象
-              values = [
-                originalValues[0] || { name: "指标1", value: "--" },
-                originalValues[1] || { name: "指标2", value: "--" },
-                originalValues[2] || { name: "指标3", value: "--" },
-                { name: "状态4", value: "--" }, // 添加第四个状态对象
-              ];
-            } else if (values.length === 4) {
-              // 如果正好4个对象，确保第四个对象的name是"状态4"
-              values[3] = {
-                name: values[3].name || "状态4",
-                value: values[3].value || "--",
-              };
-            }
+            // 直接使用提供的值，不添加默认值
+            const stats = values.map((val, index) => ({
+              name: val.name || `指标${index + 1}`,
+              value: val.value || "--",
+            }));
 
             return {
               name: detail.name || "未知项",
-              stats: [
-                {
-                  name: values[0] ? values[0].name : "指标1",
-                  value: values[0] ? values[0].value : "--",
-                  className: "success-rate",
-                },
-                {
-                  name: values[1] ? values[1].name : "指标2",
-                  value: values[1] ? values[1].value : "--",
-                  className: "response-rate",
-                },
-                {
-                  name: values[2] ? values[2].name : "指标3",
-                  value: values[2] ? values[2].value : "--",
-                  className: "p99-time",
-                },
-                {
-                  name: values[3] ? values[3].name : "状态4",
-                  value: values[3] ? values[3].value : "--",
-                  className: "status-4", // 新增的第四个状态类名
-                },
-              ],
+              stats: stats,
             };
           });
         });

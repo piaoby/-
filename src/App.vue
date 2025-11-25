@@ -110,41 +110,96 @@ export default {
               Alerts: null,
             },
           ],
+          // 替换每个 tab 数据中的 edges 数组为以下内容：
+
           edges: [
             {
               source: "firewall",
               target: "coreSwitch",
               status: "normal",
+              name: "防火墙至核心交换机",
+              detailValue: [
+                { name: "带宽使用率", value: "45%" },
+                { name: "延迟", value: "2ms" },
+                { name: "丢包率", value: "0%" },
+              ],
+            },
+            {
+              source: "coreSwitch",
+              target: "firewall",
+              status: "normal",
+              name: "核心交换机至防火墙",
+              detailValue: [
+                { name: "带宽使用率", value: "32%" },
+                { name: "延迟", value: "2ms" },
+                { name: "丢包率", value: "0%" },
+              ],
             },
             {
               source: "loadBalancer",
               target: "coreSwitch",
               status: "normal",
+              name: "负载均衡器至核心交换机",
+              detailValue: [
+                { name: "带宽使用率", value: "68%" },
+                { name: "延迟", value: "1ms" },
+                { name: "丢包率", value: "0%" },
+              ],
             },
             {
               source: "coreSwitch",
               target: "loadBalancer",
               status: "normal",
+              name: "核心交换机至负载均衡器",
+              detailValue: [
+                { name: "带宽使用率", value: "72%" },
+                { name: "延迟", value: "1ms" },
+                { name: "丢包率", value: "0%" },
+              ],
             },
             {
               source: "group",
               target: "coreSwitch",
               status: "warning",
+              name: "分组至核心交换机",
+              detailValue: [
+                { name: "带宽使用率", value: "85%" },
+                { name: "延迟", value: "5ms" },
+                { name: "丢包率", value: "0.1%" },
+              ],
             },
             {
               source: "coreSwitch",
               target: "group",
               status: "warning",
+              name: "核心交换机至分组",
+              detailValue: [
+                { name: "带宽使用率", value: "78%" },
+                { name: "延迟", value: "5ms" },
+                { name: "丢包率", value: "0.1%" },
+              ],
             },
             {
               source: "esb",
               target: "coreSwitch",
               status: "normal",
+              name: "ESB集群至核心交换机",
+              detailValue: [
+                { name: "带宽使用率", value: "56%" },
+                { name: "延迟", value: "3ms" },
+                { name: "丢包率", value: "0%" },
+              ],
             },
             {
               source: "coreSwitch",
               target: "esb",
               status: "normal",
+              name: "核心交换机至ESB集群",
+              detailValue: [
+                { name: "带宽使用率", value: "49%" },
+                { name: "延迟", value: "3ms" },
+                { name: "丢包率", value: "0%" },
+              ],
             },
           ],
           combos: [
@@ -332,6 +387,11 @@ export default {
             {
               source: "firewall",
               target: "coreSwitch",
+              status: "normal",
+            },
+            {
+              source: "coreSwitch",
+              target: "firewall",
               status: "normal",
             },
             {
@@ -553,6 +613,11 @@ export default {
               status: "normal",
             },
             {
+              source: "coreSwitch",
+              target: "firewall",
+              status: "normal",
+            },
+            {
               source: "loadBalancer",
               target: "coreSwitch",
               status: "normal",
@@ -768,6 +833,11 @@ export default {
             {
               source: "firewall",
               target: "coreSwitch",
+              status: "normal",
+            },
+            {
+              source: "coreSwitch",
+              target: "firewall",
               status: "normal",
             },
             {
