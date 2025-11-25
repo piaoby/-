@@ -420,6 +420,7 @@ export default {
               target: edge.target,
               type: "orthogonal-edge",
               status: edge.status,
+              name: edge.name || `${edge.source} → ${edge.target}`, // 添加 name 字段，默认值
             };
 
             // 定义锚点映射关系表
