@@ -3,7 +3,7 @@
     <!-- 三栏布局容器 -->
     <div class="layout-container">
       <!-- 左侧 Tab 栏 -->
-      <div class="left-panel">
+          <div class="left-panel">
         <div class="tab-content">
           <div
             v-for="(tab, index) in tabs"
@@ -13,6 +13,13 @@
             @click="selectTab(tab.key)"
           >
             <span class="tab-label">{{ tab.label }}</span>
+            <!-- 添加异常状态图标 -->
+            <img
+              v-if="tabRawData[tab.key] && tabRawData[tab.key].status === 'warning'"
+              class="warning-icon"
+              src="./assets/img/abnormal.png"
+              alt="warning"
+            />
             <img
               v-if="activeTab === tab.key"
               class="arrow-icon"
@@ -28,7 +35,7 @@
         <div ref="ringChart" class="ring-chart"></div>
       </div>
       <!-- 右侧 详情栏 -->
-      <div v-if="showDetailPanel" class="right-panel">
+      <div class="right-panel">
         <div class="detail-header" :class="{ active: showDetailPanel }">
           <div class="title-container">
             <img class="title-icon" src="./assets/img/Frame.png" alt="icon" />
@@ -292,7 +299,7 @@ export default {
       options: null,
 
       // 添加面板控制状态
-      showDetailPanel: false, // 控制右侧详情面板是否显示
+      showDetailPanel: true, // 控制右侧详情面板是否显示
       selectedNodeLabel: "Node 1111", // 默认选中的节点标签
       selectedItem: 0, // 默认选中第一个详情项
       tabRawData: {},
@@ -327,6 +334,10 @@ export default {
    * init、resize、setStyle、setData、destroy为内置函数，
    * 不可删除
    */
+  mounted() {
+    // 组件挂载后初始化默认ESB集群详情信息
+    this.initDefaultESBInfo();
+  },
   methods: {
     /** 组件初始化时触发 */
     init() {
@@ -334,6 +345,33 @@ export default {
       // 在初始化图形后调用reverseScale处理外部缩放
       this.$nextTick(() => {
         this.reverseScale();
+      });
+    },
+    // 新增方法：初始化默认ESB集群信息
+    initDefaultESBInfo() {
+      this.$nextTick(() => {
+        // 设置默认选中的节点标签为"ESB集群"
+        this.selectedNodeLabel = "ESB集群";
+
+        // 获取当前tab的详情数据并设置ESB集群的信息
+        const rawData = this.tabRawData[this.activeTab] || {};
+        const detailData = this.convertToNodeDetailData(rawData);
+
+        // 查找ESB集群的信息（通常source为"esb"或包含"esb"的节点）
+        const esbSources = Object.keys(detailData).filter(
+          (key) => key.includes("esb") || key.includes("ESB")
+        );
+
+        if (esbSources.length > 0) {
+          // 使用第一个找到的ESB集群信息
+          this.detailItems = detailData[esbSources[0]] || [];
+        } else {
+          // 如果没有找到ESB集群，使用默认数据或空数组
+          this.detailItems = [];
+        }
+
+        // 确保详情面板显示
+        this.showDetailPanel = true;
       });
     },
 
@@ -380,10 +418,17 @@ export default {
               edge.target.includes("coreSwitch")
             ) {
               // 指定ESB集群使用上方锚点(0.5, 0)，核心交换机使用右侧锚点(1, 0.5)
-              newEdge.sourceAnchor = 2; // 上方锚点索引
-              newEdge.targetAnchor = 1; // 右侧锚点索引
+              newEdge.sourceAnchor = 8; // 上方3锚点索引
+              newEdge.targetAnchor = 3; // 右侧1锚点索引
             }
-
+            if (
+              edge.source.includes("coreSwitch") &&
+              edge.target.includes("esb")
+            ) {
+              // 指定ESB集群使用上方锚点(0.5, 0)，核心交换机使用右侧锚点(1, 0.5)
+              newEdge.sourceAnchor = 5; // 右侧3锚点索引
+              newEdge.targetAnchor = 6; // 上方1锚点索引
+            }
             return newEdge;
           })
         : [];
@@ -673,9 +718,9 @@ export default {
         });
 
       // 添加画布点击事件（点击空白处）
-      this.graph.on("canvas:click", (evt) => {
-        this.closeDetailPanel();
-      });
+      // this.graph.on("canvas:click", (evt) => {
+      //   this.closeDetailPanel();
+      // });
 
       // 鼠标移动事件，用于更新提示框位置
       this.graph.on("mousemove", (evt) => {
@@ -772,7 +817,27 @@ export default {
           // 将listdetail数据转换为组件需要的详情项格式
           detailData[item.source] = item.listdetail.map((detail) => {
             // 从detailValue数组中提取或使用默认值
-            const values = detail.detailValue || [];
+            let values = detail.detailValue || [];
+
+            // 确保有4个对象，如果不足则补充
+            if (values.length < 4) {
+              // 保存原有数据
+              const originalValues = [...values];
+              // 扩展到4个对象
+              values = [
+                originalValues[0] || { name: "指标1", value: "--" },
+                originalValues[1] || { name: "指标2", value: "--" },
+                originalValues[2] || { name: "指标3", value: "--" },
+                { name: "状态4", value: "--" }, // 添加第四个状态对象
+              ];
+            } else if (values.length === 4) {
+              // 如果正好4个对象，确保第四个对象的name是"状态4"
+              values[3] = {
+                name: values[3].name || "状态4",
+                value: values[3].value || "--",
+              };
+            }
+
             return {
               name: detail.name || "未知项",
               stats: [
@@ -790,6 +855,11 @@ export default {
                   name: values[2] ? values[2].name : "指标3",
                   value: values[2] ? values[2].value : "--",
                   className: "p99-time",
+                },
+                {
+                  name: values[3] ? values[3].name : "状态4",
+                  value: values[3] ? values[3].value : "--",
+                  className: "status-4", // 新增的第四个状态类名
                 },
               ],
             };
@@ -851,6 +921,8 @@ export default {
           } else {
             this.initGraph();
           }
+          // 更新数据后重新初始化默认ESB信息
+          this.initDefaultESBInfo();
         }
       }
     },
@@ -1145,6 +1217,19 @@ export default {
         width: 28px;
         height: 28px;
         flex-shrink: 0;
+      }
+        // 添加异常图标样式
+   .warning-icon {
+        width: 14px;
+        height: 14px;
+        position: absolute;
+        top: -5px;
+        right: 0px;
+        z-index: 2;
+        background-color: #2e0d0d; // 红色背景
+        border-radius: 50%; // 圆形背景
+        box-sizing: content-box;
+        padding: 3px; 
       }
     }
   }

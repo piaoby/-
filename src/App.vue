@@ -17,6 +17,8 @@ export default {
       com: null,
       tabRawData: {
         internal: {
+          status: "normal", // 添加状态字段
+
           nodes: [
             {
               key: "firewall",
@@ -121,13 +123,28 @@ export default {
               status: "normal",
             },
             {
+              source: "coreSwitch",
+              target: "loadBalancer",
+              status: "normal",
+            },
+            {
               source: "group",
               target: "coreSwitch",
               status: "warning",
             },
             {
+              source: "coreSwitch",
+              target: "group",
+              status: "warning",
+            },
+            {
               source: "esb",
               target: "coreSwitch",
+              status: "normal",
+            },
+            {
+              source: "coreSwitch",
+              target: "esb",
               status: "normal",
             },
           ],
@@ -150,6 +167,7 @@ export default {
                     { name: "状态1", value: "90%" },
                     { name: "状态2", value: "90%" },
                     { name: "状态3", value: "90%" },
+                    { name: "状态4", value: "85%" }, // 添加状态4
                   ],
                 },
               ],
@@ -164,6 +182,7 @@ export default {
                     { name: "状态1", value: "95%" },
                     { name: "状态2", value: "85%" },
                     { name: "状态3", value: "75%" },
+                    { name: "状态4", value: "80%" }, // 添加状态4
                   ],
                 },
               ],
@@ -178,6 +197,7 @@ export default {
                     { name: "状态1", value: "80%" },
                     { name: "状态2", value: "70%" },
                     { name: "状态3", value: "120%" },
+                    { name: "状态4", value: "75%" }, // 添加状态4
                   ],
                 },
               ],
@@ -192,6 +212,7 @@ export default {
                     { name: "状态1", value: "75%" },
                     { name: "状态2", value: "65%" },
                     { name: "状态3", value: "110%" },
+                    { name: "状态4", value: "70%" }, // 添加状态4
                   ],
                 },
               ],
@@ -206,6 +227,7 @@ export default {
                     { name: "状态1", value: "85%" },
                     { name: "状态2", value: "75%" },
                     { name: "状态3", value: "90%" },
+                    { name: "状态4", value: "80%" }, // 添加状态4
                   ],
                 },
               ],
@@ -213,6 +235,8 @@ export default {
           ],
         },
         external: {
+          status: "warning", // 添加状态字段，设置为异常状态作为示例
+
           nodes: [
             {
               key: "firewall",
@@ -288,7 +312,7 @@ export default {
             },
             {
               key: "esb",
-              text: "ESB集群",
+              text: "ESB集群信息",
               status: "正常",
               combo: "B",
               source: "ESB集群信息",
@@ -326,6 +350,11 @@ export default {
               target: "coreSwitch",
               status: "normal",
             },
+            {
+              source: "coreSwitch",
+              target: "esb",
+              status: "normal",
+            },
           ],
           combos: [
             {
@@ -346,6 +375,7 @@ export default {
                     { name: "状态1", value: "90%" },
                     { name: "状态2", value: "90%" },
                     { name: "状态3", value: "90%" },
+                    { name: "状态4", value: "85%" }, // 添加状态4
                   ],
                 },
               ],
@@ -360,6 +390,7 @@ export default {
                     { name: "状态1", value: "95%" },
                     { name: "状态2", value: "85%" },
                     { name: "状态3", value: "75%" },
+                    { name: "状态4", value: "80%" }, // 添加状态4
                   ],
                 },
               ],
@@ -374,6 +405,7 @@ export default {
                     { name: "状态1", value: "80%" },
                     { name: "状态2", value: "70%" },
                     { name: "状态3", value: "120%" },
+                    { name: "状态4", value: "75%" }, // 添加状态4
                   ],
                 },
               ],
@@ -388,6 +420,7 @@ export default {
                     { name: "状态1", value: "75%" },
                     { name: "状态2", value: "65%" },
                     { name: "状态3", value: "110%" },
+                    { name: "状态4", value: "70%" }, // 添加状态4
                   ],
                 },
               ],
@@ -402,6 +435,7 @@ export default {
                     { name: "状态1", value: "85%" },
                     { name: "状态2", value: "75%" },
                     { name: "状态3", value: "90%" },
+                    { name: "状态4", value: "80%" }, // 添加状态4
                   ],
                 },
               ],
@@ -409,6 +443,8 @@ export default {
           ],
         },
         internet: {
+          status: "normal", // 添加状态字段
+
           nodes: [
             {
               key: "firewall",
@@ -522,6 +558,11 @@ export default {
               target: "coreSwitch",
               status: "normal",
             },
+            {
+              source: "coreSwitch",
+              target: "esb",
+              status: "normal",
+            },
           ],
           combos: [
             {
@@ -542,6 +583,7 @@ export default {
                     { name: "状态1", value: "90%" },
                     { name: "状态2", value: "90%" },
                     { name: "状态3", value: "90%" },
+                    { name: "状态4", value: "85%" }, // 添加状态4
                   ],
                 },
               ],
@@ -556,6 +598,7 @@ export default {
                     { name: "状态1", value: "95%" },
                     { name: "状态2", value: "85%" },
                     { name: "状态3", value: "75%" },
+                    { name: "状态4", value: "80%" }, // 添加状态4
                   ],
                 },
               ],
@@ -570,6 +613,7 @@ export default {
                     { name: "状态1", value: "80%" },
                     { name: "状态2", value: "70%" },
                     { name: "状态3", value: "120%" },
+                    { name: "状态4", value: "75%" }, // 添加状态4
                   ],
                 },
               ],
@@ -584,6 +628,7 @@ export default {
                     { name: "状态1", value: "75%" },
                     { name: "状态2", value: "65%" },
                     { name: "状态3", value: "110%" },
+                    { name: "状态4", value: "70%" }, // 添加状态4
                   ],
                 },
               ],
@@ -598,6 +643,7 @@ export default {
                     { name: "状态1", value: "85%" },
                     { name: "状态2", value: "75%" },
                     { name: "状态3", value: "90%" },
+                    { name: "状态4", value: "80%" }, // 添加状态4
                   ],
                 },
               ],
@@ -605,6 +651,8 @@ export default {
           ],
         },
         transaction: {
+          status: "normal", // 添加状态字段
+
           nodes: [
             {
               key: "firewall",
@@ -718,6 +766,11 @@ export default {
               target: "coreSwitch",
               status: "normal",
             },
+            {
+              source: "coreSwitch",
+              target: "esb",
+              status: "normal",
+            },
           ],
           combos: [
             {
@@ -738,6 +791,7 @@ export default {
                     { name: "状态1", value: "90%" },
                     { name: "状态2", value: "90%" },
                     { name: "状态3", value: "90%" },
+                    { name: "状态4", value: "85%" }, // 添加状态4
                   ],
                 },
               ],
@@ -752,6 +806,7 @@ export default {
                     { name: "状态1", value: "95%" },
                     { name: "状态2", value: "85%" },
                     { name: "状态3", value: "75%" },
+                    { name: "状态4", value: "80%" }, // 添加状态4
                   ],
                 },
               ],
@@ -766,6 +821,7 @@ export default {
                     { name: "状态1", value: "80%" },
                     { name: "状态2", value: "70%" },
                     { name: "状态3", value: "120%" },
+                    { name: "状态4", value: "75%" }, // 添加状态4
                   ],
                 },
               ],
@@ -780,6 +836,7 @@ export default {
                     { name: "状态1", value: "75%" },
                     { name: "状态2", value: "65%" },
                     { name: "状态3", value: "110%" },
+                    { name: "状态4", value: "70%" }, // 添加状态4
                   ],
                 },
               ],
@@ -794,6 +851,7 @@ export default {
                     { name: "状态1", value: "85%" },
                     { name: "状态2", value: "75%" },
                     { name: "状态3", value: "90%" },
+                    { name: "状态4", value: "80%" }, // 添加状态4
                   ],
                 },
               ],
@@ -837,7 +895,7 @@ export default {
 #com-container {
   width: 100%;
   height: 100%;
-  //background-color: #0b1421;
+  background-color: #0b1421;
   // 确保容器可以正确应用变换
   transform-origin: center center;
 }
