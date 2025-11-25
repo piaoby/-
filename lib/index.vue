@@ -3,19 +3,25 @@
     <!-- 三栏布局容器 -->
     <div class="layout-container">
       <!-- 左侧 Tab 栏 -->
-          <div class="left-panel">
+      <div class="left-panel">
         <div class="tab-content">
           <div
             v-for="(tab, index) in tabs"
             :key="index"
             class="tab-item"
-            :class="{ active: activeTab === tab.key }"
+            :class="{
+              active: activeTab === tab.key,
+              warning:
+                tabRawData[tab.key] && tabRawData[tab.key].status === 'warning',
+            }"
             @click="selectTab(tab.key)"
           >
             <span class="tab-label">{{ tab.label }}</span>
             <!-- 添加异常状态图标 -->
             <img
-              v-if="tabRawData[tab.key] && tabRawData[tab.key].status === 'warning'"
+              v-if="
+                tabRawData[tab.key] && tabRawData[tab.key].status === 'warning'
+              "
               class="warning-icon"
               src="./assets/img/abnormal.png"
               alt="warning"
@@ -52,13 +58,15 @@
           >
             <div class="item-name">{{ item.name }}</div>
             <div class="item-stats">
-              <span
-                v-for="(stat, statIndex) in item.stats"
-                :key="statIndex"
-                :class="stat.className"
-              >
-                {{ stat.name }}: {{ stat.value }}
-              </span>
+              <div class="stats-grid">
+                <span
+                  v-for="(stat, statIndex) in item.stats"
+                  :key="statIndex"
+                  :class="stat.className"
+                >
+                  {{ stat.name }}: {{ stat.value }}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -314,6 +322,8 @@ export default {
         { key: "transaction", label: "互联网非交易区" },
       ],
       activeTab: "internal", // 默认选中第一个tab
+      tooltipElement: null,
+      edgeTooltipElement: null,
     };
   },
   created() {
@@ -412,22 +422,46 @@ export default {
               status: edge.status,
             };
 
-            // 特殊处理ESB集群到核心交换机的连接
-            if (
-              edge.source.includes("esb") &&
-              edge.target.includes("coreSwitch")
-            ) {
-              // 指定ESB集群使用上方锚点(0.5, 0)，核心交换机使用右侧锚点(1, 0.5)
-              newEdge.sourceAnchor = 8; // 上方3锚点索引
-              newEdge.targetAnchor = 3; // 右侧1锚点索引
-            }
-            if (
-              edge.source.includes("coreSwitch") &&
+            // 定义锚点映射关系表
+            const anchorMap = {
+              "esb->coreSwitch": { sourceAnchor: 8, targetAnchor: 3 },
+              "coreSwitch->esb": { sourceAnchor: 5, targetAnchor: 6 },
+              "coreSwitch->group": { sourceAnchor: 11, targetAnchor: 8 },
+              "group->coreSwitch": { sourceAnchor: 6, targetAnchor: 9 },
+              "loadBalancer->coreSwitch": { sourceAnchor: 3, targetAnchor: 0 },
+              "coreSwitch->loadBalancer": { sourceAnchor: 2, targetAnchor: 5 },
+            };
+
+            // 构造当前边的标识符用于查找映射
+            const key = `${
+              edge.source.includes("esb")
+                ? "esb"
+                : edge.source.includes("coreSwitch")
+                ? "coreSwitch"
+                : edge.source.includes("group")
+                ? "group"
+                : edge.source.includes("loadBalancer")
+                ? "loadBalancer"
+                : ""
+            }->${
               edge.target.includes("esb")
-            ) {
-              // 指定ESB集群使用上方锚点(0.5, 0)，核心交换机使用右侧锚点(1, 0.5)
-              newEdge.sourceAnchor = 5; // 右侧3锚点索引
-              newEdge.targetAnchor = 6; // 上方1锚点索引
+                ? "esb"
+                : edge.target.includes("coreSwitch")
+                ? "coreSwitch"
+                : edge.target.includes("group")
+                ? "group"
+                : edge.target.includes("loadBalancer")
+                ? "loadBalancer"
+                : ""
+            }`;
+
+            // 应用对应的锚点配置
+            if (anchorMap[key]) {
+              newEdge.sourceAnchor = anchorMap[key].sourceAnchor;
+              newEdge.targetAnchor = anchorMap[key].targetAnchor;
+            } else {
+              // 可选：打印日志或设置默认锚点以防止意外情况
+              console.warn(`未找到对应锚点配置: ${key}`);
             }
             return newEdge;
           })
@@ -461,13 +495,53 @@ export default {
             }, 100);
           });
         }
+        // 添加这部分代码来更新右侧ESB信息
+        this.updateESBDetailsForTab(tabKey);
       } else {
         if (this.graph) {
           this.graph.changeData({ nodes: [], edges: [] });
         }
       }
     },
+    updateESBDetailsForTab(tabKey) {
+      const rawData = this.tabRawData[tabKey] || {};
+      const detailData = this.convertToNodeDetailData(rawData);
 
+      // 查找ESB集群的信息
+      const esbSources = Object.keys(detailData).filter((key) => {
+        const node = rawData.nodes?.find((node) => node.key === key);
+        return (
+          node &&
+          (node.source.includes("esb") ||
+            node.source.includes("ESB") ||
+            node.text.includes("ESB") ||
+            node.text.includes("esb"))
+        );
+      });
+
+      if (esbSources.length > 0) {
+        // 使用第一个找到的ESB集群信息
+        this.detailItems = detailData[esbSources[0]] || [];
+      } else {
+        // 如果没有找到ESB集群，使用默认数据或空数组
+        this.detailItems = [];
+      }
+
+      // 更新选中的节点标签为ESB集群名称
+      const esbNode = rawData.nodes?.find(
+        (node) =>
+          node.source.includes("esb") ||
+          node.source.includes("ESB") ||
+          node.text.includes("ESB") ||
+          node.text.includes("esb")
+      );
+
+      if (esbNode) {
+        this.selectedNodeLabel = esbNode.text || "ESB集群";
+      } else {
+        this.selectedNodeLabel = "ESB集群";
+      }
+    },
     selectItem(index) {
       this.selectedItem = index;
       // 这里可以添加选择详情项时的业务逻辑
@@ -636,25 +710,25 @@ export default {
         const detailData = this.convertToNodeDetailData(rawData);
         this.detailItems = detailData[nodeId] || [];
 
-        this.showDetailPanel = true;
-        this.$nextTick(() => {
-          if (this.graph) {
-            this.$nextTick(() => {
-              this.resizeGraphAndKeepView(
-                this.$refs.component.clientWidth * 0.6,
-                this.$refs.component.clientHeight
-              );
+        // this.showDetailPanel = true;
+        // this.$nextTick(() => {
+        //   if (this.graph) {
+        //     this.$nextTick(() => {
+        //       this.resizeGraphAndKeepView(
+        //         this.$refs.component.clientWidth * 0.6,
+        //         this.$refs.component.clientHeight
+        //       );
 
-              // 重新启动所有边的动画
-              setTimeout(() => {
-                const edges = this.graph.getEdges();
-                edges.forEach((edge) => {
-                  this.graph.refreshItem(edge);
-                });
-              }, 50);
-            });
-          }
-        });
+        //       // 重新启动所有边的动画
+        //       setTimeout(() => {
+        //         const edges = this.graph.getEdges();
+        //         edges.forEach((edge) => {
+        //           this.graph.refreshItem(edge);
+        //         });
+        //       }, 50);
+        //     });
+        //   }
+        // });
       });
 
       // 节点鼠标悬浮事件
@@ -722,8 +796,49 @@ export default {
       //   this.closeDetailPanel();
       // });
 
+      // 边鼠标悬浮事件
+      this.graph.on("edge:mouseenter", (evt) => {
+        // 构建提示内容
+        let tooltipContent = `<div class="node-tooltip"><div class="tooltip-content">
+    <div class="tooltip-item">暂无接入数据</div>
+  </div></div>`;
+
+        // 创建提示框元素
+        if (!this.edgeTooltipElement) {
+          this.edgeTooltipElement = document.createElement("div");
+          this.edgeTooltipElement.className = "g6-node-tooltip";
+          this.edgeTooltipElement.style.position = "absolute";
+          this.edgeTooltipElement.style.backgroundColor = "#111B30";
+          this.edgeTooltipElement.style.color = "#fff";
+          this.edgeTooltipElement.style.padding = "10px";
+          this.edgeTooltipElement.style.borderRadius = "4px";
+          this.edgeTooltipElement.style.fontSize = "12px";
+          this.edgeTooltipElement.style.zIndex = "999";
+          this.edgeTooltipElement.style.boxShadow =
+            "0 2px 6px rgba(0, 0, 0, 0.3)";
+          this.edgeTooltipElement.style.pointerEvents = "none";
+          document.body.appendChild(this.edgeTooltipElement);
+        }
+
+        this.edgeTooltipElement.innerHTML = tooltipContent;
+        // 设置提示框位置为鼠标右侧
+        this.edgeTooltipElement.style.left = evt.canvasX + "px";
+        this.edgeTooltipElement.style.top = evt.canvasY + "px";
+        this.edgeTooltipElement.style.transform = "translate(80px, 0)";
+
+        this.edgeTooltipElement.style.display = "block";
+      });
+
+      // 边鼠标移出事件
+      this.graph.on("edge:mouseleave", (evt) => {
+        if (this.edgeTooltipElement) {
+          this.edgeTooltipElement.style.display = "none";
+        }
+      });
+
       // 鼠标移动事件，用于更新提示框位置
       this.graph.on("mousemove", (evt) => {
+        // 更新节点tooltip位置（保持原有逻辑）
         if (
           this.tooltipElement &&
           this.tooltipElement.style.display !== "none"
@@ -731,6 +846,16 @@ export default {
           this.tooltipElement.style.left = evt.canvasX + "px";
           this.tooltipElement.style.top = evt.canvasY + "px";
           this.tooltipElement.style.transform = "translate(80px, 0)";
+        }
+
+        // 更新边tooltip位置
+        if (
+          this.edgeTooltipElement &&
+          this.edgeTooltipElement.style.display !== "none"
+        ) {
+          this.edgeTooltipElement.style.left = evt.canvasX + "px";
+          this.edgeTooltipElement.style.top = evt.canvasY + "px";
+          this.edgeTooltipElement.style.transform = "translate(80px, 0)";
         }
       });
 
@@ -932,6 +1057,19 @@ export default {
       if (!this.graph) {
         return;
       }
+
+      // 清理节点tooltip
+      if (this.tooltipElement) {
+        this.tooltipElement.remove();
+        this.tooltipElement = null;
+      }
+
+      // 清理边tooltip
+      if (this.edgeTooltipElement) {
+        this.edgeTooltipElement.remove();
+        this.edgeTooltipElement = null;
+      }
+
       this.graph.destroy();
       this.graph = null;
     },
@@ -979,7 +1117,7 @@ export default {
         align-items: center;
         padding: 0 15px;
         position: relative;
-        background: 
+        background:
         // linear-gradient(
         //   90deg,
         //   rgba(95, 199, 255, 0.3) 0%,
@@ -1093,13 +1231,23 @@ export default {
           }
 
           .item-stats {
-            display: flex;
-            justify-content: space-between;
             font-size: 12px;
+
+            .stats-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr; /* 两列布局 */
+              gap: 5px 10px; /* 行间距5px，列间距10px */
+
+              span {
+                color: #fff;
+                padding: 2px 0;
+              }
+            }
 
             .success-rate,
             .response-rate,
-            .p99-time {
+            .p99-time,
+            .status-4 {
               color: #fff;
             }
           }
@@ -1144,21 +1292,32 @@ export default {
       cursor: pointer;
       transition: background-color 0.3s;
       position: relative;
+      // 添加警告状态样式
+      &.warning {
+        background: linear-gradient(
+          90deg,
+          rgba(255, 0, 0, 0.2) 0%,
+          /* 淡红色 */ rgba(255, 0, 0, 0.05) 100%
+        );
 
+        // &:hover {
+        //   background-color: rgba(255, 0, 0, 0.1); /* 悬停时加深 */
+        // }
+
+        // &.active {
+        //   background: linear-gradient(
+        //     90deg,
+        //     rgba(255, 0, 0, 0.3) 0%,
+        //     /* 淡红色 */ rgba(255, 0, 0, 0.1) 100%
+        //   );
+        // }
+      }
       &:hover {
         background-color: rgba(68, 68, 68, 0.7);
       }
 
       &.active {
-        // background-image: url('./assets/img/tabbg.png');
-
-        background: 
-        // linear-gradient(
-        //   90deg,
-        //   rgba(95, 199, 255, 0.3) 0%,
-        //   rgba(95, 199, 255, 0.1) 100%
-        // ),
-          url("./assets/img/tabbg.png");
+        background: url("./assets/img/tabbg.png");
         background-repeat: no-repeat;
         background-position: center;
         background-size: cover;
@@ -1218,8 +1377,8 @@ export default {
         height: 28px;
         flex-shrink: 0;
       }
-        // 添加异常图标样式
-   .warning-icon {
+      // 添加异常图标样式
+      .warning-icon {
         width: 14px;
         height: 14px;
         position: absolute;
@@ -1229,7 +1388,7 @@ export default {
         background-color: #2e0d0d; // 红色背景
         border-radius: 50%; // 圆形背景
         box-sizing: content-box;
-        padding: 3px; 
+        padding: 3px;
       }
     }
   }
