@@ -418,6 +418,8 @@ export default {
             const newEdge = {
               source: edge.source,
               target: edge.target,
+              detailValue: edge.detailValue || [],
+              hoverValue: edge.hoverValue || [],
               type: "orthogonal-edge",
               status: edge.status,
               name: edge.name || `${edge.source} → ${edge.target}`, // 添加 name 字段，默认值
@@ -836,6 +838,7 @@ export default {
 
         this.edgeTooltipElement.style.display = "block";
       });
+      // 边鼠标点击事件
       this.graph.on("edge:click", (evt) => {
         const edge = evt.item;
         const edgeModel = edge.getModel();
